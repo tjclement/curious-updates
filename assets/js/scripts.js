@@ -35,7 +35,8 @@ class App {
     
     selectBadge() {
         this.badge = null;
-        let id = document.getElementById("badge-type").value;
+        // let id = document.getElementById("badge-type").value;
+        let id = 'brucon2024';
         for (let index = 0; index < this.badges.length; index++) {
             if (this.badges[index].id == id) {
                 this.badge = this.badges[index];

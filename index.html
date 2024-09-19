@@ -4,7 +4,7 @@
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>BADGE.TEAM</title>
+        <title>Curious Supplies</title>
         <link rel="stylesheet" href="assets/fonts/roboto.css">
         <link rel="stylesheet" href="assets/bootstrap/css/bootstrap.min.css">
         <link rel="stylesheet" href="assets/font-awesome/css/font-awesome.min.css">
@@ -31,11 +31,10 @@
                     <ul class="nav navbar-nav navbar-right">
                         <li>
                             <span class="li-text">
-                                Firmware utility v0.1 BETA
+                                Bonus firmware
                             </span> 
                             <span class="li-social">
-                                <a href="https://twitter.com/sha2017badge" target="_blank"><i class="fa fa-twitter"></i></a> 
-                                <a href="https://github.com/badgeteam" target="_blank"><i class="fa fa-github"></i></a>
+                                <a href="https://github.com/tjclement" target="_blank"><i class="fa fa-github"></i></a>
                             </span>
                         </li>
                     </ul>
@@ -73,15 +72,15 @@
         
         <script id="tpl-select-badge" type="text/x-handlebars-template">
             <h3>Welcome</h3>
-            <p>Please select the type of badge you want to flash.</p>
-            <p>Disclaimer: <i>This tool comes with absolutely no guarantees, flashing the firmware for a wrong type of badge could result in damage to your device.</i></p>
+            <!--<p>Please select the type of badge you want to flash.</p>
             <div class="form-group">
                 <select class="form-select form-control" id="badge-type">
                     {{#each this}}
                         <option value="{{id}}">{{name}}</option>
                     {{/each}}
                 </select>
-            </div>
+            </div> -->
+            <p>Press the small white button left of the audio connector, then plug in, plug out, and plug in a USB cable that's connected to this computer. You can now let go of the white button. This puts your badge in flashing mode.</p>
             <p>Click connect, then select the serial port to which your badge is attached.</p>
             <div class="f1-buttons">
                 <button type="button" class="btn btn-next" onclick="app.selectBadge();">Connect</button>
