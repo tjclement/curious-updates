@@ -1,6 +1,8 @@
 "use strict";
+import { ESPLoader } from "./esptool.js";
 
-var app = null;
+window.app = null;
+let inputBuffer = [];
 
 jQuery(document).ready(function() {
     $.backstretch("assets/img/backgrounds/1.jpg");
@@ -21,10 +23,15 @@ class App {
         
         if ('serial' in navigator) {
             this.render(this.templates.welcome, null);
-            this.loadBadges().catch((error) => { this.render(this.templates.error, error); });
+            this.loadBadges().catch((error) => { debugger;this.render(this.templates.error, error); });
         } else {
             this.render(this.templates.webserial, null);
         }
+
+        window.addEventListener("disconnect", () => {
+            debugger;
+            this.render(this.templates.disconnected, error);
+        });
     }
     
     async loadBadges() {
@@ -46,7 +53,7 @@ class App {
         if (this.badge === null) {
             this.render(this.templates.error, "Failed to select badge.");
         } else {
-            this.connect().catch((error) => { this.render(this.templates.error, error); });
+            this.connect();//.catch((error) => { debugger;this.render(this.templates.error, error); });
         }
     }
     
@@ -55,6 +62,7 @@ class App {
     }
     
     loaderError(message) {
+        debugger;
         this.render(this.templates.error, message);
         console.error(message);
     }
@@ -85,40 +93,42 @@ class App {
         this.port = await navigator.serial.requestPort();
         this.render(this.templates.message, {title: "Connection", message: "Please select the correct serial port."});
         if (this.getChromeVersion() < 86) {
-            await this.port.open({ baudrate: ESP_ROM_BAUD });
+            await this.port.open({ baudrate: 115200 });
         } else {
-            await this.port.open({ baudRate: ESP_ROM_BAUD });
+            await this.port.open({ baudRate: 115200 });
         }
         this.signals = await this.port.getSignals();
         this.render(this.templates.message, {title: "Connection", message: "Connected to the serial port."});
-        this.outputStream = this.port.writable;
-        this.inputStream = this.port.readable;
+        // this.outputStream = this.port.writable;
+        // this.inputStream = this.port.readable;
         inputBuffer = [];
-        this.readLoop().catch((error) => {
-            this.render(this.templates.disconnected, error);
-        });
-        this.espTool = new EspLoader(this.loaderLog.bind(this), this.loaderError.bind(this), this.port, this.badge.flashsize, this.writeToStream.bind(this));
+        this.espTool = new ESPLoader(this.port, {
+            log: this.loaderLog.bind(this),
+            debug: this.loaderLog.bind(this),
+            error: this.loaderError.bind(this),
+          });
+        await this.espTool.initialize();
         this.render(this.templates.message, {title: "Connection", message: "Connecting to the badge..."});
-          try {
+        try {
             if (await this.espTool.sync()) {
-                if (this.badge.baudrate != ESP_ROM_BAUD) {
+                if (this.badge.baudrate != 115200) {
                     this.render(this.templates.message, {title: "Connection", message: "Changing baudrate..."});
                     await this.espTool.setBaudrate(this.badge.baudrate);
                 }
-                this.render(this.templates.message, {title: "Connection", message: "Connected to " + await this.espTool.chipName() + " (" + this.formatMacAddr(this.espTool.macAddr()) + "), loading stub..."});
+                this.render(this.templates.message, {title: "Connection", message: "Connected to " + await this.espTool.chipName + " (" + this.formatMacAddr(this.espTool.macAddr()) + "), loading stub..."});
                 this.stubLoader = await this.espTool.runStub();
                 await this.menu();
             } else {
                 this.render(this.templates.error, "Failed to connect.");
             }
-        } catch(error) {
+        } catch(error) {debugger;
             this.render(this.templates.error, error);
         }
     }
     
     async menu() {
-        let chip = await this.stubLoader.chipName();
-        let mac = this.formatMacAddr(this.stubLoader.macAddr());
+        let chip = await this.stubLoader._parent.chipName;
+        let mac = this.formatMacAddr(this.stubLoader._parent.macAddr());
         this.render(this.templates.menu, {
             name: this.badge.name,
             chip: chip,
@@ -136,7 +146,7 @@ class App {
             let stamp = Date.now();
             await this.stubLoader.eraseFlash();
             this.render(this.templates.confirmation, {title: "Erase flash", message: "Finished. Took " + (Date.now() - stamp) + "ms to erase."});
-        } catch(error) {
+        } catch(error) {debugger;
             this.render(this.templates.error, error);
         }
     }
@@ -147,8 +157,8 @@ class App {
         return response.arrayBuffer();
     }
     
-    showProgress(operation, progress = 0) {
-        this.render(this.templates.message, {title: "Flashing...", message: "Writing "+operation.name+" to " + this.toHex(operation.address) + "... ("+progress+"%)"});
+    showProgress(operation, written = 0, total = 0) {
+        this.render(this.templates.message, {title: "Flashing...", message: "Writing "+operation.name+" to " + this.toHex(operation.address) + "... ("+Math.round(written / Math.max(1,total) * 100)+"%)"});
     }
     
     async flashFirmware() {
@@ -159,30 +169,12 @@ class App {
                 this.render(this.templates.message, {title: "Flashing...", message: "Downloading "+operation.name+"..."});
                 let data = await this.getData(operation.filename);
                 this.showProgress(operation);
-                await this.stubLoader.flashData(data, operation.address, this.showProgress.bind(this, operation));
+                await this.stubLoader.flashData(data, this.showProgress.bind(this, operation), operation.address, true);
             }
-            this.render(this.templates.confirmation, {title: "Flash result", message: "Done."});
+            this.render(this.templates.confirmation, {title: "Flash result", message: "Done! Disconnect the USB cable and power off (double click) and on (single click) the badge with the B button. Enjoy!"});
         } catch(error) {
-            console.error(error);
+            console.error(error);debugger;
             this.render(this.templates.error, error);
-        }
-    }
-    
-    async writeToStream(data) {
-        const writer = this.outputStream.getWriter();
-        await writer.write(new Uint8Array(data));
-        writer.releaseLock();
-    }
-    
-    async readLoop() {
-        this.reader = this.port.readable.getReader();
-        while (true) {
-            const { value, done } = await this.reader.read();
-            if (done) {
-                this.reader.releaseLock();
-                break;
-            }
-            inputBuffer = inputBuffer.concat(Array.from(value));
         }
     }
 

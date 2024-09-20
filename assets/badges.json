@@ -6,7 +6,7 @@
         "baudrate": 460800,
         "flash": [
             {"filename": "brucon2024/bootloader.bin", "address": 4096, "name": "bootloader"},
-            {"filename": "brucon2024/partition_table.bin", "address": 32768, "name": "partition table"},
+            {"filename": "brucon2024/partition-table.bin", "address": 32768, "name": "partition table"},
             {"filename": "brucon2024/badge_firmware.bin", "address": 65536, "name": "firmware"}
         ]
     }
